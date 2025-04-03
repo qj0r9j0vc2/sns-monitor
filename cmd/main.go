@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"os"
-	"sns-monitor/internal/lambdaclient"
+	"sns-monitor/internal/lambda"
 
 	"sns-monitor/internal/server"
 )
