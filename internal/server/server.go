@@ -64,7 +64,7 @@ func Run() {
 	for {
 		select {
 		case <-ticker.C:
-			if err := publishTimestamp(ctx); err != nil {
+			if err = publishTimestamp(ctx); err != nil {
 				log.Printf("Failed to publish: %v", err)
 				_ = common.SendAlert("Error publishing timestamp: " + err.Error())
 			}

@@ -4,8 +4,13 @@ include .env
 
 APP_NAME=sns-monitor
 PLATFORM=linux/amd64
-DOCKER_TAG?=latest
+GIT_COMMIT=$(shell git rev-parse --short HEAD)
+DOCKER_TAG?=$(GIT_COMMIT)
 LOG_LEVEL?=debug
+
+
+
+REPO?=ghcr.io/qj0r9j0vc2
 
 BIN_DIR=bin
 
@@ -41,10 +46,10 @@ docker-lambda:
 
 # BuildKit builds
 docker-buildx:
-	docker buildx build --platform=$(PLATFORM) -t $(APP_NAME):$(DOCKER_TAG) --provenance=false --load -f Dockerfile .
+	docker buildx build --platform=$(PLATFORM) -t $(REPO)/$(APP_NAME):$(DOCKER_TAG) --provenance=false --load -f Dockerfile --push .
 
 docker-lambda-buildx:
-	docker buildx build --platform=$(PLATFORM) -t $(APP_NAME)-lambda:$(DOCKER_TAG) --provenance=false --load -f Dockerfile.lambda .
+	docker buildx build --platform=$(PLATFORM) -t $(LAMBDA_ECR):$(DOCKER_TAG) --provenance=false --load -f Dockerfile.lambda --push .
 
 # Clean build artifacts
 clean:

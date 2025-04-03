@@ -1,13 +1,24 @@
-FROM golang:1.23.4 as build
-WORKDIR /manager
-# Copy dependencies list
-COPY go.mod go.sum ./
-# Build with optional lambda.norpc tag
-COPY . .
-RUN go mod tidy
-RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags lambda.norpc -tags lambda -o main
-# Copy artifacts to a clean image
-FROM public.ecr.aws/lambda/provided:al2
-COPY --from=build /manager/main ./main
+# Stage 1: Build Go Lambda binary
+FROM golang:1.23.4 AS build
 
-ENTRYPOINT [ "./main" ]
+WORKDIR /app
+
+# Copy go mod and sum first for caching
+COPY go.mod go.sum ./
+RUN go mod tidy
+
+# Copy full source code
+COPY . .
+
+# Build with lambda and lambda.norpc tags
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+    go build -tags lambda.norpc,lambda -o main ./cmd
+
+# Stage 2: Create clean AWS Lambda runtime image
+FROM public.ecr.aws/lambda/provided:al2
+
+# Copy built binary from builder stage
+COPY --from=build /app/main ./main
+
+# Set entrypoint
+ENTRYPOINT ["./main"]
