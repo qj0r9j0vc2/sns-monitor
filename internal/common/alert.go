@@ -12,6 +12,7 @@ import (
 )
 
 func SendAlert(subject, msg string) error {
+	subject = fmt.Sprintf("[sns-monitor(%s)] %s", Mode, subject)
 	slackURL := os.Getenv("SLACK_WEBHOOK_URL")
 	if slackURL != "" {
 		err := PostJSON(slackURL, map[string]string{"text": msg})
@@ -25,6 +26,7 @@ func SendAlert(subject, msg string) error {
 		payload := map[string]interface{}{
 			"routing_key":  pdKey,
 			"event_action": "trigger",
+			"dedup_key":    subject,
 			"payload": map[string]interface{}{
 				"summary":   subject,
 				"source":    "sns-monitor",

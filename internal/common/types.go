@@ -1,5 +1,7 @@
 package common
 
+var Mode string
+
 type SNSMessage struct {
 	Timestamp int64 `json:"timestamp"`
 }
