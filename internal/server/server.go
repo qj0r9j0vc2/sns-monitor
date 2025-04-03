@@ -109,7 +109,7 @@ func publishTimestamp(ctx context.Context) error {
 		TopicArn: aws.String(topicArn),
 	})
 	if err == nil {
-		log.Printf("Published timestamp: %d", ts)
+		log.Printf("Published timestamp: %s", time.UnixMilli(ts).String())
 		pendingMessagesM.Lock()
 		pendingMessages[ts] = time.Now()
 		pendingMessagesM.Unlock()
@@ -132,8 +132,8 @@ func monitorPendingMessages(timeoutSec int) {
 			}
 		}
 		for _, ts := range expired {
-			log.Printf("🚨 No callback received for timestamp %d within %d seconds", ts, timeoutSec)
-			_ = common.SendAlert(fmt.Sprintf("🚨 No callback received within %d seconds for timestamp %d", timeoutSec, ts))
+			log.Printf("🚨 No callback received for timestamp %s within %d seconds", time.UnixMilli(ts).String(), timeoutSec)
+			_ = common.SendAlert(fmt.Sprintf("🚨 No callback received within %d seconds for timestamp %s", timeoutSec, time.UnixMilli(ts).String()))
 			delete(pendingMessages, ts)
 		}
 		pendingMessagesM.Unlock()
@@ -149,13 +149,13 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var payload common.CallbackPayload
-	if err := json.Unmarshal(body, &payload); err != nil {
+	if err = json.Unmarshal(body, &payload); err != nil {
 		log.Printf("Invalid callback JSON: %v", err)
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("📥 Received callback: published=%d, received=%d, latency=%.2fs", payload.Timestamp, payload.Received, payload.LatencySeconds)
+	log.Printf("📥 Received callback: published=%s, received=%s, latency=%.2fs", time.UnixMilli(payload.Timestamp).String(), time.UnixMilli(payload.Received).String(), payload.LatencySeconds)
 
 	pendingMessagesM.Lock()
 	delete(pendingMessages, payload.Timestamp)
