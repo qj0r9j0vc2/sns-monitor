@@ -15,10 +15,6 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-type SNSMessage struct {
-	Timestamp int64 `json:"timestamp"`
-}
-
 func Run() {
 	lambda.Start(lambdaHandler)
 }
@@ -28,7 +24,7 @@ func lambdaHandler(ctx context.Context, event events.SNSEvent) (string, error) {
 		message := record.SNS.Message
 
 		// Try to parse the SNS message as JSON
-		var parsed SNSMessage
+		var parsed common.SNSMessage
 		err := json.Unmarshal([]byte(message), &parsed)
 		if err == nil && parsed.Timestamp > 0 {
 			processSNSTimestamp(parsed)
@@ -40,7 +36,7 @@ func lambdaHandler(ctx context.Context, event events.SNSEvent) (string, error) {
 	return "SNS message processed", nil
 }
 
-func processSNSTimestamp(parsed SNSMessage) {
+func processSNSTimestamp(parsed common.SNSMessage) {
 	publishedTS := parsed.Timestamp
 	currentTS := time.Now().UnixMilli()
 	latency := float64(currentTS-publishedTS) / 1000.0
@@ -48,11 +44,12 @@ func processSNSTimestamp(parsed SNSMessage) {
 	log.Printf("Received SNS timestamp: %d, current time: %d, latency: %.2f seconds", publishedTS, currentTS, latency)
 
 	if callbackURL := os.Getenv("SNS_CHECKER_CALLBACK_URL"); callbackURL != "" {
-		payload := map[string]interface{}{
-			"timestamp":       publishedTS,
-			"received":        currentTS,
-			"latency_seconds": latency,
+		payload := common.CallbackPayload{
+			Timestamp:      publishedTS,
+			Received:       currentTS,
+			LatencySeconds: latency,
 		}
+
 		common.PostJSON(callbackURL, payload)
 	} else {
 		log.Println("SNS_CHECKER_CALLBACK_URL is not set")
