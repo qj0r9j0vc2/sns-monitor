@@ -2,25 +2,11 @@ version: '3.8'
 
 services:
   sns-monitor:
-    image: ghcr.io/qj0r9j0vc2/sns-monitor:$VERSION
+    image: ghcr.io/qj0r9j0vc2/sns-monitor:${VERSION:-latest}
     ports:
       - "8080:8080"
     env_file:
       - .env
     environment:
-      - # General
-      - MODE=${MODE} # server, lambda-client
-      -
-      - # Server
-      - AWS_ACCESS_KEY_ID=
-      - AWS_SECRET_ACCESS_KEY=
-      - SNS_TOPIC_ARN=
-      - PUBLISH_INTERVAL_SECONDS= # 30
-      - LATENCY_THRESHOLD_SECONDS= # 10
-      - HEALTHCHECK_TIMEOUT= # 20
-      -
-      - # Alerting
-      - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-      - PAGERDUTY_ROUTING_KEY=...
-
+      MODE: ${MODE}
     restart: unless-stopped

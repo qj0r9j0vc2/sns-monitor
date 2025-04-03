@@ -43,6 +43,8 @@ func Run() {
 		log.Fatalf("AWS config error: %v", err)
 	}
 
+	cfg.Region = os.Getenv("AWS_REGION")
+
 	// STS identity check
 	identityClient := sts.NewFromConfig(cfg)
 	identity, err := identityClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
