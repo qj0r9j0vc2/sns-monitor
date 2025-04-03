@@ -85,7 +85,8 @@ func Run() {
 		case <-ticker.C:
 			if err = publishTimestamp(ctx); err != nil {
 				log.Printf("Failed to publish: %v", err)
-				_ = common.SendAlert("Error publishing timestamp: " + err.Error())
+				subject := "Error publishing timestamp"
+				_ = common.SendAlert(subject, subject+": "+err.Error())
 			}
 		case <-stop:
 			log.Println("Stopping client...")
@@ -133,7 +134,8 @@ func monitorPendingMessages(timeoutSec int) {
 		}
 		for _, ts := range expired {
 			log.Printf("🚨 No callback received for timestamp %s within %d seconds", time.UnixMilli(ts).String(), timeoutSec)
-			_ = common.SendAlert(fmt.Sprintf("🚨 No callback received within %d seconds for timestamp %s", timeoutSec, time.UnixMilli(ts).String()))
+			subject := "🚨 No callback received"
+			_ = common.SendAlert(subject, fmt.Sprintf("%s within %d seconds for timestamp %s", subject, timeoutSec, time.UnixMilli(ts).String()))
 			delete(pendingMessages, ts)
 		}
 		pendingMessagesM.Unlock()
@@ -164,7 +166,8 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	threshold := common.GetEnvInt("LATENCY_THRESHOLD_SECONDS", 10)
 	if int(payload.LatencySeconds) > threshold {
 		log.Printf("🚨 Latency %.2fs exceeds threshold %ds", payload.LatencySeconds, threshold)
-		err := common.SendAlert(fmt.Sprintf("🚨 High latency detected: %.2f sec", payload.LatencySeconds))
+		subject := "🚨 High latency detected"
+		err = common.SendAlert(subject, fmt.Sprintf("%s: %.2f sec", subject, payload.LatencySeconds))
 		if err != nil {
 			log.Printf("❌ Alert sending failed: %v", err)
 		}

@@ -1,4 +1,4 @@
-package lambdaclient
+package lambda
 
 import (
 	"context"
@@ -93,6 +93,7 @@ func checkServerHealth() {
 }
 
 func sendAlert(msg string) {
-	alarm := fmt.Sprintf("🚨 Mon_bharvest_monitor_kr alert: %s", msg)
-	_ = common.SendAlert(alarm)
+	subject := "🚨 sns-monitor(lambda) alert"
+	alarm := fmt.Sprintf("%s: %s", subject, msg)
+	_ = common.SendAlert(subject, alarm)
 }

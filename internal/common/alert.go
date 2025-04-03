@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func SendAlert(msg string) error {
+func SendAlert(subject, msg string) error {
 	slackURL := os.Getenv("SLACK_WEBHOOK_URL")
 	if slackURL != "" {
 		err := PostJSON(slackURL, map[string]string{"text": msg})
@@ -26,7 +26,7 @@ func SendAlert(msg string) error {
 			"routing_key":  pdKey,
 			"event_action": "trigger",
 			"payload": map[string]interface{}{
-				"summary":   msg,
+				"summary":   subject,
 				"source":    "sns-monitor",
 				"severity":  "error",
 				"timestamp": time.Now().Format(time.RFC3339),
