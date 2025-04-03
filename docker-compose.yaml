@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   sns-monitor:
-    image: sns-monitor:latest
+    image: ghcr.io/qj0r9j0vc2/sns-monitor:latest
     build:
       context: .
       dockerfile: Dockerfile
