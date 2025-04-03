@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -21,7 +22,11 @@ import (
 	"sns-monitor/internal/common"
 )
 
-var snsClient *sns.Client
+var (
+	snsClient        *sns.Client
+	pendingMessages  = make(map[int64]time.Time)
+	pendingMessagesM sync.Mutex
+)
 
 func Run() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -39,7 +44,6 @@ func Run() {
 
 	snsClient = sns.NewFromConfig(cfg)
 
-	// HTTP server for receiving callbacks
 	http.HandleFunc("/callback", callbackHandler)
 	go func() {
 		log.Println("Listening on :8080 for callbacks")
@@ -54,6 +58,9 @@ func Run() {
 			interval = val
 		}
 	}
+
+	healthTimeout := common.GetEnvInt("HEALTHCHECK_TIMEOUT", 20) // seconds
+	go monitorPendingMessages(healthTimeout)
 
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	defer ticker.Stop()
@@ -81,7 +88,8 @@ func publishTimestamp(ctx context.Context) error {
 		return fmt.Errorf("SNS_TOPIC_ARN not set")
 	}
 
-	msg := common.SNSMessage{Timestamp: time.Now().UnixMilli()}
+	ts := time.Now().UnixMilli()
+	msg := common.SNSMessage{Timestamp: ts}
 	body, _ := json.Marshal(msg)
 
 	_, err := snsClient.Publish(ctx, &sns.PublishInput{
@@ -89,9 +97,35 @@ func publishTimestamp(ctx context.Context) error {
 		TopicArn: aws.String(topicArn),
 	})
 	if err == nil {
-		log.Printf("Published timestamp: %d", msg.Timestamp)
+		log.Printf("Published timestamp: %d", ts)
+		pendingMessagesM.Lock()
+		pendingMessages[ts] = time.Now()
+		pendingMessagesM.Unlock()
 	}
 	return err
+}
+
+func monitorPendingMessages(timeoutSec int) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		cutoff := time.Now().Add(-time.Duration(timeoutSec) * time.Second)
+		var expired []int64
+
+		pendingMessagesM.Lock()
+		for ts, publishedAt := range pendingMessages {
+			if publishedAt.Before(cutoff) {
+				expired = append(expired, ts)
+			}
+		}
+		for _, ts := range expired {
+			log.Printf("🚨 No callback received for timestamp %d within %d seconds", ts, timeoutSec)
+			_ = common.SendAlert(fmt.Sprintf("🚨 No callback received within %d seconds for timestamp %d", timeoutSec, ts))
+			delete(pendingMessages, ts)
+		}
+		pendingMessagesM.Unlock()
+	}
 }
 
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +144,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("📥 Received callback: published=%d, received=%d, latency=%.2fs", payload.Timestamp, payload.Received, payload.LatencySeconds)
+
+	pendingMessagesM.Lock()
+	delete(pendingMessages, payload.Timestamp)
+	pendingMessagesM.Unlock()
 
 	threshold := common.GetEnvInt("LATENCY_THRESHOLD_SECONDS", 10)
 	if int(payload.LatencySeconds) > threshold {
