@@ -41,7 +41,7 @@ func processSNSTimestamp(parsed common.SNSMessage) {
 	currentTS := time.Now().UnixMilli()
 	latency := float64(currentTS-publishedTS) / 1000.0
 
-	log.Printf("Received SNS timestamp: %d, current time: %d, latency: %.2f seconds", publishedTS, currentTS, latency)
+	log.Printf("Received SNS timestamp: %s, current time: %s, latency: %.2f seconds", time.UnixMilli(publishedTS), time.UnixMilli(currentTS), latency)
 
 	if callbackURL := os.Getenv("SNS_CHECKER_CALLBACK_URL"); callbackURL != "" {
 		payload := common.CallbackPayload{
