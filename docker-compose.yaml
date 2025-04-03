@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  sns-monitor:
+    image: sns-monitor:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - MODE=${MODE}
+    restart: unless-stopped
