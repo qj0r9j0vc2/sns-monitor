@@ -2,10 +2,7 @@ version: '3.8'
 
 services:
   sns-monitor:
-    image: ghcr.io/qj0r9j0vc2/sns-monitor:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/qj0r9j0vc2/sns-monitor:$VERSION
     ports:
       - "8080:8080"
     env_file:
