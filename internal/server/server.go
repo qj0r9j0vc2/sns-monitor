@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	"sns-monitor/internal/common"
 )
@@ -40,6 +41,15 @@ func Run() {
 		)))
 	if err != nil {
 		log.Fatalf("AWS config error: %v", err)
+	}
+
+	// STS identity check
+	identityClient := sts.NewFromConfig(cfg)
+	identity, err := identityClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil {
+		log.Printf("⚠️ Failed to get caller identity: %v", err)
+	} else {
+		log.Printf("🔐 Running as AWS Account: %s, UserId: %s, ARN: %s", aws.ToString(identity.Account), aws.ToString(identity.UserId), aws.ToString(identity.Arn))
 	}
 
 	snsClient = sns.NewFromConfig(cfg)
