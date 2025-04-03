@@ -13,9 +13,9 @@ func main() {
 	switch mode {
 	case "server":
 		server.Run()
-	case "lambda-client":
+	case "lambda":
 		lambdaclient.Run()
 	default:
-		log.Fatalf("Unknown or unset MODE: %s. Use 'client' or 'server'", mode)
+		log.Fatalf("Unknown or unset MODE: %s. Use 'lambda' or 'server'", mode)
 	}
 }
